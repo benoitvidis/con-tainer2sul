@@ -1,0 +1,30 @@
+{
+  "name": "con-tainer2sul",
+  "version": "0.1.0",
+  "description": "Auto-register Docker containers in Consul",
+  "main": "lib/index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "lint": "eslint -c .eslintrc.yml lib"
+  },
+  "author": "Benoît Vidis",
+  "license": "Apache-2.0",
+  "dependencies": {
+    "bluebird": "^3.4.6",
+    "bunyan": "^1.8.1",
+    "docker-events": "0.0.2",
+    "dockerode": "^2.3.1",
+    "dockerode-promise": "^0.1.0",
+    "rc": "^1.1.6",
+    "request": "^2.75.0",
+    "request-promise": "^4.1.1",
+    "rewire": "^2.5.2"
+  },
+  "devDependencies": {
+    "eslint": "^3.8.0",
+    "mocha": "^3.1.2",
+    "should": "^11.1.1",
+    "sinon": "^1.17.6",
+    "sinon-as-promised": "^4.0.2"
+  }
+}

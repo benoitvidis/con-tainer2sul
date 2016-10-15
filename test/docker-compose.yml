@@ -1,0 +1,25 @@
+version: '2'
+
+services:
+  consul:
+    image: consul:0.7.0
+    ports:
+      - "8500:8500"
+    networks:
+      - net
+
+  c2c:
+    image: node:6.8
+    command: /var/app/test/run.sh
+    container_name: c2c
+    networks:
+      - net
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ..:/var/app
+      - /usr/local/lib/node_modules
+    environment:
+      c2c_consul__host: consul
+
+networks:
+  net:
