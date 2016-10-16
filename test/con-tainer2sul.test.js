@@ -1,47 +1,196 @@
 'use strict';
 
-const rewire = require('rewire');
+const mockRequire = require('mock-require');
 const should = require('should');
 const sinon = require('sinon');
-const C2C = rewire('../lib/con-tainer2sul');
 
 describe('con-tainer2sul', () => {
+  var C2C;
   var c2c;
-  var reset;
+  var stubs;
 
   beforeEach(() => {
-    reset = C2C.__set__({
-      bunyan: {
-        createLogger: sinon.stub().returns({
-          debug: sinon.spy(),
-          info: sinon.spy(),
-          error: sinon.spy()
-        })
+    stubs = {
+      log: {
+        debug: sinon.spy(),
+        info: sinon.spy(),
+        error: sinon.spy()
       },
-      Consul: function () {
-        this.catalog = {
+      consul: {
+        catalog: {
           register: sinon.stub(),
           deregister: sinon.stub()
-        };
-        this.kv = {
+        },
+        kv: {
           keys: sinon.stub(),
           get: sinon.stub(),
           set: sinon.stub(),
           delete: sinon.stub()
-        };
+        }
+      },
+      docker: {
+        _container: {
+          inspect: sinon.stub().resolves()
+        },
+        client: {},
+        events: {
+          on: sinon.stub()
+        }
+      }
+    };
+    stubs.bunyan = {
+      createLogger: sinon.stub().returns(stubs.log)
+    };
+    stubs.docker.client.getContainer = sinon.stub().returns(stubs.docker._container);
+    stubs.Consul = sinon.stub().returns(stubs.consul);
+    stubs.Docker = sinon.stub().returns(stubs.docker);
+
+    mockRequire('bunyan', stubs.bunyan);
+    mockRequire('../lib/consul', stubs.Consul);
+    mockRequire('../lib/docker', stubs.Docker);
+    C2C = require('../lib/con-tainer2sul');
+    mockRequire.reRequire('../lib/con-tainer2sul');
+
+    c2c = new C2C({
+      consul: {
+        host: 'consul',
+        port: 8500
+      },
+      docker: {
+        socketPath: '/path'
+      },
+      logger: {
+        name: 'test'
       }
     });
-    c2c = new C2C();
-
-
   });
 
   afterEach(() => {
-    reset();
+    mockRequire.stopAll();
   });
 
   describe('#constructor', () => {
+    it('should populate the object and attach Docker events', () => {
+      should(c2c.config).match({
+        consul: {
+          host: 'consul',
+          port: 8500
+        },
+        docker: {
+          socketPath: '/path'
+        }
+      });
 
+      should(stubs.Consul)
+        .be.calledOnce()
+        .be.calledWithMatch({
+          host: 'consul',
+          port: 8500
+        });
+
+      should(stubs.Docker)
+        .calledOnce()
+        .be.calledWith(c2c);
+
+      should(stubs.docker.events.on)
+        .be.calledTwice()
+        .be.calledWith('start')
+        .be.calledWith('die');
+    });
+
+    describe('#events', () => {
+      const container = {foo: 'bar'};
+      var start;
+      var die;
+
+      beforeEach(() => {
+        c2c.docker._container.inspect.resolves(container);
+        sinon.stub(C2C.prototype, 'registerContainer').resolves();
+        sinon.stub(C2C.prototype, 'containerServiceName').returns('service');
+        sinon.stub(C2C.prototype, 'deregister').resolves();
+        c2c._attachEvents();
+        start = c2c.docker.events.on.getCall(2).args[1];
+        die = c2c.docker.events.on.getCall(3).args[1];
+      });
+
+      it('#start should register the container', () => {
+        return start({
+          id: 'test'
+        })
+          .then(() => {
+            should(c2c.docker.client.getContainer)
+              .be.calledOnce()
+              .be.calledWith('test');
+
+            should(c2c.docker._container.inspect)
+              .be.calledOnce();
+
+            should(c2c.registerContainer)
+              .be.calledOnce()
+              .be.calledWithExactly(container);
+
+          });
+      });
+
+      it('#start should log the error if something goes wrong', () => {
+        let error = new Error('test');
+
+        c2c.docker._container.inspect.rejects(error);
+
+        return start({id: 'test'})
+          .then(() => {
+            should(1).be.false();
+          })
+          .catch(err => {
+            should(c2c.log.error)
+              .be.calledOnce()
+              .be.calledWithExactly(err);
+
+            should(err).be.exactly(error);
+          });
+      });
+
+      it('#die should deregister the container', () => {
+        return die({id: 'test'})
+          .then(() => {
+            should(c2c.docker.client.getContainer)
+              .be.calledOnce()
+              .be.calledWith('test');
+
+            should(c2c.docker._container.inspect)
+              .be.calledOnce();
+
+            should(c2c.containerServiceName)
+              .be.calledOnce()
+              .be.calledWithExactly(container);
+
+            should(c2c.deregister)
+              .be.calledOnce()
+              .be.calledWith('service');
+          });
+      });
+
+      it('#die should log the error if something goes wrong', () => {
+        let error = new Error('test');
+
+        c2c.docker._container.inspect.rejects(error);
+
+        return die({id: 'test'})
+          .then(() => {
+            should(1).be.false();
+          })
+          .catch(err => {
+            should(c2c.log.error)
+              .be.calledOnce()
+              .be.calledWithExactly(err);
+
+            should(err).be.exactly(error);
+          });
+      });
+    });
+  });
+
+  describe('#start', () => {
 
   });
 
