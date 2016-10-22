@@ -1,0 +1,6 @@
+instrumentation:
+  default-excludes: true
+  excludes:
+    - lib/config.js
+    - lib/index.js
+  include-all-sources: true
