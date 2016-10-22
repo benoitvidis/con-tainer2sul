@@ -425,7 +425,7 @@ describe('con-tainer2sul', () => {
         Config: {
           Labels: {
             'consul.ip': 'consul ip',
-            'consul.port': 'consul port',
+            'consul.port': '8888 consul port',
             'consul.service': 'consul service',
             'consul.tags': 'consul,tags',
             'consul.skip': 'false'
@@ -443,8 +443,23 @@ describe('con-tainer2sul', () => {
       should(result.Node).be.exactly('foo');
       should(result.Address).be.exactly('consul ip');
       should(result.Service.Service).be.exactly('consul service');
-      should(result.Service.Port).be.exactly('consul port');
+      should(result.Service.Port).be.exactly(8888);
       should(result.Service.Tags).match(['consul', 'tags']);
+    });
+
+    it('should not set the port if it does not manage to cast it to an int', () => {
+      let result = c2c.container2Service({
+        Labels: {
+          'consul.port': 'not a number'
+        },
+        NetworkSettings: {
+          Networks: {
+            IPAddress: 'ip'
+          }
+        }
+      });
+
+      should(result.Service.Port).be.undefined();
     });
 
     it('should use docker0 ip address if `host` is specified for ip', () => {
