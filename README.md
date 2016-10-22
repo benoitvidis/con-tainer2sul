@@ -136,6 +136,19 @@ docker run --rm --name c2c -ti -l consul.tags=www,api alpine ash
 
 will register a service `c2c` with `www` and `api` tags.
 
+### Port
+
+For the time being, Con-tainer2sul support registering only one port.
+
+Port can be set using a `consul.port` label.
+
+```
+docker run --rm --name c2c -ti -l consul.port=80 alpine ash
+```
+
+will register a service `c2c` on port 80.
+
+
 ### Skipping registration
 
 You can tell Con-tainer2sul to not register the container by using a `container.skip` label, set to anything else than `false`.
