@@ -54,7 +54,7 @@ _.c2crc_
     "host": "localhost",
     "port": 8500
   },
-  [..]
+  "[..]": "[..]"
 }
 ```
 
@@ -69,7 +69,7 @@ Default configuration listens to Docker daemon on `/var/run/docker.sock` unix so
 _.c2crc_
 ```json
 {
-  [..],
+  "[..]": "[..]",
   "docker": {
     "socketPath": "/var/run/docker.sock"
   }
@@ -85,7 +85,7 @@ Default configuration outputs logs at `info` level to `stdout`.
 _.c2crc_
 ```json
 {
-  [..],
+  "[..]": "[..]",
   "logger": {
     "name": "con-tainer2sul"
   }
