@@ -6,9 +6,19 @@ const sinon = require('sinon');
 
 describe('docker', () => {
   var
+    clock,
     Docker,
     docker,
     stubs;
+
+  before(() => {
+    clock = sinon.useFakeTimers();
+
+  });
+
+  after(() => {
+    clock.restore();
+  });
 
   beforeEach(() => {
     stubs = {
@@ -24,8 +34,8 @@ describe('docker', () => {
         }])
       },
       events: {
-        on: sinon.spy(function (event, cb) { cb(); }),
-        start: sinon.spy()
+        on: sinon.stub(),
+        start: sinon.stub()
       },
       c2c: {
         config: {
@@ -35,7 +45,9 @@ describe('docker', () => {
           }
         },
         log: {
-          info: sinon.spy()
+          error: sinon.spy(),
+          info: sinon.spy(),
+          warn: sinon.spy()
         }
       },
       dockerode: sinon.stub(),
@@ -63,17 +75,84 @@ describe('docker', () => {
 
   describe('#start', () => {
     it('should start events and attach the connect event', () => {
-      return docker.start()
+      let p = docker.start();
+
+      let connect = docker.events.on.firstCall.args[1];
+      let disconnect = docker.events.on.secondCall.args[1];
+
+      connect();
+
+      return p
         .then(() => {
           should(docker.events.start)
             .be.calledOnce();
 
           should(docker.events.on)
-            .be.calledOnce()
-            .be.calledWith('connect');
+            .be.calledTwice()
+            .be.calledWith('connect')
+            .be.calledWith('disconnect');
 
           should(docker.docker0).be.exactly('docker0 from docker');
         });
+    });
+
+    it('should call start again on timeout', () => {
+      sinon.spy(docker, 'start');
+      docker.events.on
+        .withArgs('connect')
+        .onSecondCall()
+        .yields();
+
+      let p = docker.start();
+
+      should(docker.start)
+        .be.calledOnce();
+
+      clock.tick(10000);
+
+      return p
+        .then(() => {
+          should(docker.start)
+            .be.calledTwice();
+        });
+    });
+
+    it('should reject the promise if something unexpected occured', () => {
+      var error = new Error('test');
+
+      docker.events.start.throws(error);
+
+      return docker.start()
+        .then(() => {
+          throw new Error('this should not happen');
+        })
+        .catch(e => {
+          should(e).be.exactly(error);
+
+          should(docker.c2c.log.error)
+            .be.calledOnce()
+            .be.calledWith(error);
+        });
+    });
+
+    it('#disconnect event should try to restart', () => {
+      sinon.spy(docker, 'start');
+      docker.events.on
+        .withArgs('connect')
+        .yields();
+
+      docker.start();
+
+      let disconnect = docker.events.on.secondCall.args[1];
+
+      disconnect();
+
+      should(docker.c2c.log.warn)
+        .be.calledOnce()
+        .be.calledWith('Disconnected from Docker. Reconnecting');
+
+      should(docker.start)
+        .be.calledTwice();
     });
   });
 
