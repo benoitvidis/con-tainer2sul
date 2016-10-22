@@ -4,7 +4,7 @@
   "description": "Auto-register Docker containers in Consul",
   "main": "lib/index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "npm run --silent lint && npm run --silent unit-tests",
     "lint": "eslint -c .eslintrc.yml lib",
     "unit-tests": "istanbul cover _mocha"
   },
