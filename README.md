@@ -148,6 +148,16 @@ docker run --rm --name c2c -ti -l consul.port=80 alpine ash
 
 will register a service `c2c` on port 80.
 
+### Key/Value pairs
+
+Each container can be attached some key/value pairs, using the `consul.kv.<KEY>` template.
+
+```
+docker run --rm --name c2c -ti -l consul.kv.foo=bar -l consul.kv.bar=baz alpine ash
+```
+
+will register a service `c2c` and create 2 key/value pairs under the `/services/c2c/` tree.2 key/value pairs under the `/services/c2c/` tree.
+
 
 ### Skipping registration
 

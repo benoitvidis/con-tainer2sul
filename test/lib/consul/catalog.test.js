@@ -23,7 +23,7 @@ describe('consul/catalog', () => {
     });
   });
 
-  describe('#deregister', () => {
+  describe('#deregisterService', () => {
     it('should call _put on proper route', () => {
       catalog.deregister('data');
 

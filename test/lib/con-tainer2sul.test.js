@@ -75,16 +75,6 @@ describe('con-tainer2sul', () => {
 
   describe('#constructor', () => {
     it('should populate the object and attach Docker events', () => {
-      should(c2c.config).match({
-        consul: {
-          host: 'consul',
-          port: 8500
-        },
-        docker: {
-          socketPath: '/path'
-        }
-      });
-
       should(stubs.Consul)
         .be.calledOnce()
         .be.calledWithMatch({
@@ -104,14 +94,15 @@ describe('con-tainer2sul', () => {
 
     describe('#events', () => {
       const container = {foo: 'bar'};
-      var start;
-      var die;
+      let
+        start,
+        die;
 
       beforeEach(() => {
         c2c.docker._container.inspect.resolves(container);
         sinon.stub(C2C.prototype, 'registerContainer').resolves();
         sinon.stub(C2C.prototype, 'containerServiceName').returns('service');
-        sinon.stub(C2C.prototype, 'deregister').resolves();
+        sinon.stub(C2C.prototype, 'deregisterService').resolves();
         c2c._attachEvents();
         start = c2c.docker.events.on.getCall(2).args[1];
         die = c2c.docker.events.on.getCall(3).args[1];
@@ -154,7 +145,7 @@ describe('con-tainer2sul', () => {
           });
       });
 
-      it('#die should deregister the container', () => {
+      it('#die should deregisterService the container', () => {
         return die({id: 'test'})
           .then(() => {
             should(c2c.docker.client.getContainer)
@@ -168,7 +159,7 @@ describe('con-tainer2sul', () => {
               .be.calledOnce()
               .be.calledWithExactly(container);
 
-            should(c2c.deregister)
+            should(c2c.deregisterService)
               .be.calledOnce()
               .be.calledWith('service');
           });
@@ -207,7 +198,7 @@ describe('con-tainer2sul', () => {
 
       c2c.registerContainers = sinon.stub().resolves();
       c2c.registerContainer = sinon.stub().resolves();
-      c2c.deregister = sinon.stub().resolves();
+      c2c.deregisterService = sinon.stub().resolves();
       c2c.consul.kv.keys.resolves([
         'test',
         'foo'
@@ -215,7 +206,7 @@ describe('con-tainer2sul', () => {
       c2c.docker.client.getContainer.returns(container);
     });
 
-    it('should deregister non-running containers and register running ones', () => {
+    it('should deregisterService non-running containers and register running ones', () => {
       return c2c.start()
         .then(() => {
           should(c2c.consul.kv.keys)
@@ -230,7 +221,7 @@ describe('con-tainer2sul', () => {
           should(c2c.docker.client.getContainer)
             .be.calledTwice();
 
-          should(c2c.deregister)
+          should(c2c.deregisterService)
             .be.calledTwice()
             .be.calledWith('test')
             .be.calledWith('foo');
@@ -273,7 +264,7 @@ describe('con-tainer2sul', () => {
         });
     });
 
-    it('should deregister non-running containers', () => {
+    it('should deregisterService non-running containers', () => {
       container.inspect
         .onFirstCall().resolves({
           State: {
@@ -283,7 +274,7 @@ describe('con-tainer2sul', () => {
 
       return c2c.start()
         .then(() => {
-          should(c2c.deregister)
+          should(c2c.deregisterService)
             .be.calledTwice();
         });
     });
@@ -377,18 +368,18 @@ describe('con-tainer2sul', () => {
 
       c2c.consul.catalog.register.rejects(error);
 
-      return should(c2c.registerContainer())
+      return should(c2c.registerContainer({}))
         .be.rejectedWith(error);
     });
   });
 
-  describe('#deregister', () => {
+  describe('#deregisterService', () => {
     it('should log and reject errors', () => {
       let error = new Error('test');
 
       c2c.consul.catalog.deregister.rejects(error);
 
-      return c2c.deregister()
+      return c2c.deregisterService()
         .then(() => {
           throw new Error('this should not happen');
         })
@@ -401,16 +392,17 @@ describe('con-tainer2sul', () => {
         });
     });
 
-    it('should deregister the node and associated key', () => {
-      return c2c.deregister('test')
+    it('should deregisterService the node and associated key', () => {
+      return c2c.deregisterService('test')
         .then(() => {
           should(c2c.consul.catalog.deregister)
             .be.calledOnce()
             .be.calledWithMatch({ Node: 'test' });
 
           should(c2c.consul.kv.delete)
-            .be.calledOnce()
-            .be.calledWith('docker/service-ids/test');
+            .be.calledTwice()
+            .be.calledWith('docker/service-ids/test')
+            .be.calledWith('services/test');
         });
     });
   });

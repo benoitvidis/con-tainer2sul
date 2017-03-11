@@ -2,14 +2,14 @@ version: '2'
 
 services:
   consul:
-    image: consul:0.7.0
+    image: consul:0.7.5
     ports:
       - "8500:8500"
     networks:
       - net
 
   c2c:
-    image: node:6.8
+    image: node:6
     command: /var/app/test/run.sh
     container_name: c2c
     networks:
