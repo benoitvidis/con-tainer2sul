@@ -1,3 +1,6 @@
+> [!WARNING]
+> This repository is not maintained anymore.
+
 # Con-tainer2sul
 
 [![Build Status](https://travis-ci.org/vidiben/con-tainer2sul.svg?branch=master)](https://travis-ci.org/vidiben/con-tainer2sul) 
